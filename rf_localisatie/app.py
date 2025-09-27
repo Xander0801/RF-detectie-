@@ -1,28 +1,21 @@
 from flask import Flask, render_template, jsonify
 import socket, threading, json
 
-#http://127.0.0.1:5000/
+# http://127.0.0.1:5000/
 
 app = Flask(__name__)
 
-pi_positions = [(0, 0), (10, 0), (5, 8)]
-latest_packet = None   # zal dict zijn met 'phone' en 'pis'
+latest_data = {}   # hier verzamelen we de pakketten van de Pi's
 
 def udp_server():
-    global latest_packet
+    global latest_data
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(("127.0.0.1", 5005))
+    sock.bind(("0.0.0.0", 5005))  # luistert op alle interfaces
     while True:
-        data, _ = sock.recvfrom(4096)
+        data, addr = sock.recvfrom(1024)
         pkt = json.loads(data.decode())
-
-        # Altijd opslaan als dict met phone & pis
-        if isinstance(pkt, dict):
-            latest_packet = pkt
-        else:
-            latest_packet = {"phone": (0,0), "pis": pkt}
-
-        print("SERVER received:", latest_packet)  # debug
+        latest_data[pkt["id"]] = pkt   # opslaan per Pi
+        print("Received:", pkt)
 
 threading.Thread(target=udp_server, daemon=True).start()
 
@@ -32,18 +25,10 @@ def index():
 
 @app.route("/data")
 def data():
-    global latest_packet
-    if not latest_packet:
-        return jsonify({"pis": [], "phone": (0, 0)})
-
-    phone = latest_packet.get("phone", (0,0))
-    # haal de posities van de Pi’s uit het pakket
-    pis = [pi["pos"] for pi in latest_packet["pis"]]
-
-    return jsonify({
-        "pis": pis,
-        "phone": phone
-    })
+    # bouw lijst met alle Pi-posities
+    pis = [latest_data[i]["pos"] for i in sorted(latest_data)]
+    phone = (0,0)  # later: berekenen uit RSSI of simuleren
+    return jsonify({"pis": pis, "phone": phone})
 
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=False)
