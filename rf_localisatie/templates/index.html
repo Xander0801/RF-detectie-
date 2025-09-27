@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>RF Localisatie Simulatie</title>
+  <style>
+    body { font-family: Arial, sans-serif; display: flex; gap: 24px; justify-content: center; margin: 20px; }
+    #wrap { display: flex; flex-direction: column; align-items: center; }
+    #map { border: 1px solid #222; background: #fafafa; }
+    #info { min-width: 240px; }
+    h2 { margin: 6px 0 16px; }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <h2>RF Localisatie Simulatie</h2>
+    <canvas id="map" width="1600" height="900"></canvas>
+  </div>
+  <div id="info">
+    <h3>Locaties</h3>
+    <p id="pi1">Raspberry 1:</p>
+    <p id="pi2">Raspberry 2:</p>
+    <p id="pi3">Raspberry 3:</p>
+    <p id="phone">Phone:</p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("map");
+    const ctx = canvas.getContext("2d");
+
+    function draw(pis, phone) {
+      // bepaal min/max
+      const all = [...pis, phone];
+      const xs = all.map(p => p[0]);
+      const ys = all.map(p => p[1]);
+      const minX = Math.min(...xs) - 1;
+      const maxX = Math.max(...xs) + 1;
+      const minY = Math.min(...ys) - 1;
+      const maxY = Math.max(...ys) + 1;
+
+      // schaal X en Y apart → benut volle breedte én hoogte
+      const scaleX = (canvas.width - 80) / (maxX - minX);
+      const scaleY = (canvas.height - 80) / (maxY - minY);
+
+      const X = x => 40 + (x - minX) * scaleX;
+      const Y = y => canvas.height - 40 - (y - minY) * scaleY;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Grid tekenen
+      ctx.strokeStyle = "#ddd";
+      ctx.lineWidth = 1;
+      for (let gx = Math.floor(minX); gx <= Math.ceil(maxX); gx++) {
+        ctx.beginPath();
+        ctx.moveTo(X(gx), Y(minY));
+        ctx.lineTo(X(gx), Y(maxY));
+        ctx.stroke();
+      }
+      for (let gy = Math.floor(minY); gy <= Math.ceil(maxY); gy++) {
+        ctx.beginPath();
+        ctx.moveTo(X(minX), Y(gy));
+        ctx.lineTo(X(maxX), Y(gy));
+        ctx.stroke();
+      }
+
+      // Raspberry Pi’s tekenen
+      pis.forEach((p, i) => {
+        ctx.fillStyle = "blue";
+        ctx.beginPath();
+        ctx.arc(X(p[0]), Y(p[1]), 10, 0, 2 * Math.PI);
+        ctx.fill();
+        // label naast de stip
+        ctx.fillStyle = "black";
+        ctx.font = "14px Arial";
+        ctx.fillText("Pi" + (i+1), X(p[0]) + 12, Y(p[1]) - 12);
+
+        document.getElementById(`pi${i+1}`).textContent =
+          `Raspberry ${i+1}: (${p[0].toFixed(2)}, ${p[1].toFixed(2)})`;
+      });
+
+      // Phone tekenen
+      ctx.fillStyle = "red";
+      ctx.beginPath();
+      ctx.arc(X(phone[0]), Y(phone[1]), 10, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.fillStyle = "black";
+      ctx.font = "14px Arial";
+      ctx.fillText("Phone", X(phone[0]) + 12, Y(phone[1]) - 12);
+
+      document.getElementById("phone").textContent =
+        `Phone: (${phone[0].toFixed(2)}, ${phone[1].toFixed(2)})`;
+    }
+
+    async function update() {
+      const res = await fetch("/data?ts=" + Date.now(), { cache: "no-store" });
+      const data = await res.json();
+      draw(data.pis, data.phone);
+    }
+
+    update();
+    setInterval(update, 500);
+  </script>
+</body>
+</html>
