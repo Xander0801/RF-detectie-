@@ -4,24 +4,79 @@
   <meta charset="utf-8" />
   <title>RF Localisatie Simulatie</title>
   <style>
-    body { font-family: Arial, sans-serif; display: flex; gap: 24px; justify-content: center; margin: 20px; }
-    #wrap { display: flex; flex-direction: column; align-items: center; }
-    #map { border: 1px solid #222; background: #fafafa; }
-    #info { min-width: 240px; }
-    h2 { margin: 6px 0 16px; }
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin: 20px;
+      background: #0d1b0d;
+      color: #b6fcb6;
+    }
+    #wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h2 {
+      margin: 10px 0 20px;
+      color: #6bff6b;
+      text-shadow: 0 0 8px #00ff00;
+    }
+    #map {
+      border: 2px solid #00ff66;
+      background: radial-gradient(circle at center, #0a1a0a, #000);
+      box-shadow: 0 0 20px #00ff66;
+    }
+    table {
+      border-collapse: collapse;
+      width: 280px;
+      background: #102510;
+      box-shadow: 0 0 15px #00ff44;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      border: 1px solid #00aa33;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #1a331a;
+      color: #7aff7a;
+    }
+    tr:nth-child(even) {
+      background: #152815;
+    }
+    tr:hover {
+      background: #204020;
+    }
   </style>
 </head>
 <body>
   <div id="wrap">
-    <h2>RF Localisatie Simulatie</h2>
+    <h2>📡 RF Localisatie Simulatie</h2>
     <canvas id="map" width="1600" height="900"></canvas>
   </div>
   <div id="info">
-    <h3>Locaties</h3>
-    <p id="pi1">Raspberry 1:</p>
-    <p id="pi2">Raspberry 2:</p>
-    <p id="pi3">Raspberry 3:</p>
-    <p id="phone">Phone:</p>
+    <h3>🔍 Live Posities</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Device</th>
+          <th>X</th>
+          <th>Y</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Raspberry 1</td><td id="pi1x">-</td><td id="pi1y">-</td></tr>
+        <tr><td>Raspberry 2</td><td id="pi2x">-</td><td id="pi2y">-</td></tr>
+        <tr><td>Raspberry 3</td><td id="pi3x">-</td><td id="pi3y">-</td></tr>
+        <tr style="color:#ff5555; font-weight:bold;">
+          <td>📱 Phone</td><td id="phonex">-</td><td id="phoney">-</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <script>
@@ -29,7 +84,6 @@
     const ctx = canvas.getContext("2d");
 
     function draw(pis, phone) {
-      // bepaal min/max
       const all = [...pis, phone];
       const xs = all.map(p => p[0]);
       const ys = all.map(p => p[1]);
@@ -38,7 +92,6 @@
       const minY = Math.min(...ys) - 1;
       const maxY = Math.max(...ys) + 1;
 
-      // schaal X en Y apart → benut volle breedte én hoogte
       const scaleX = (canvas.width - 80) / (maxX - minX);
       const scaleY = (canvas.height - 80) / (maxY - minY);
 
@@ -47,8 +100,8 @@
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Grid tekenen
-      ctx.strokeStyle = "#ddd";
+      // Radar grid
+      ctx.strokeStyle = "#004400";
       ctx.lineWidth = 1;
       for (let gx = Math.floor(minX); gx <= Math.ceil(maxX); gx++) {
         ctx.beginPath();
@@ -65,30 +118,29 @@
 
       // Raspberry Pi’s tekenen
       pis.forEach((p, i) => {
-        ctx.fillStyle = "blue";
+        ctx.fillStyle = "#33ff33";
         ctx.beginPath();
         ctx.arc(X(p[0]), Y(p[1]), 10, 0, 2 * Math.PI);
         ctx.fill();
-        // label naast de stip
-        ctx.fillStyle = "black";
+        ctx.fillStyle = "#88ff88";
         ctx.font = "14px Arial";
         ctx.fillText("Pi" + (i+1), X(p[0]) + 12, Y(p[1]) - 12);
 
-        document.getElementById(`pi${i+1}`).textContent =
-          `Raspberry ${i+1}: (${p[0].toFixed(2)}, ${p[1].toFixed(2)})`;
+        document.getElementById(`pi${i+1}x`).textContent = p[0].toFixed(2);
+        document.getElementById(`pi${i+1}y`).textContent = p[1].toFixed(2);
       });
 
       // Phone tekenen
-      ctx.fillStyle = "red";
+      ctx.fillStyle = "#ff3333";
       ctx.beginPath();
       ctx.arc(X(phone[0]), Y(phone[1]), 10, 0, 2 * Math.PI);
       ctx.fill();
-      ctx.fillStyle = "black";
+      ctx.fillStyle = "#ff8888";
       ctx.font = "14px Arial";
       ctx.fillText("Phone", X(phone[0]) + 12, Y(phone[1]) - 12);
 
-      document.getElementById("phone").textContent =
-        `Phone: (${phone[0].toFixed(2)}, ${phone[1].toFixed(2)})`;
+      document.getElementById("phonex").textContent = phone[0].toFixed(2);
+      document.getElementById("phoney").textContent = phone[1].toFixed(2);
     }
 
     async function update() {

@@ -2,6 +2,7 @@ from flask import Flask, render_template, jsonify
 import socket, threading, json
 
 #http://127.0.0.1:5000/
+#pip install Flask-Twilio
 
 app = Flask(__name__)
 
