@@ -1,0 +1,6 @@
+mkdir C:\rf-1d
+cd C:\rf-1d
+python -m venv .venv
+. .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install matplotlib
