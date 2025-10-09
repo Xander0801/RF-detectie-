@@ -1,0 +1,29 @@
+Handleiding om python script te runnen bij het opstarten van de pi
+
+In terminal:
+sudo nano /etc/systemd/system/mijnscript.service
+
+Code voor mijnscript.service: (zorg dat user, bestandlocaties en naam van script juist ingesteld staat)
+[Unit]
+Description=Mijn Python Script
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/pi/mijn_script.py
+WorkingDirectory=/home/pi
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target
+
+Voer uit in terminal:
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable mijnscript.service
+sudo systemctl start mijnscript.service
+
+controleer status:
+sudo systemctl status mijnscript.service
