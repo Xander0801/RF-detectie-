@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>RF Localisatie Simulatie</title>
+  <style>
+    body { font-family: Arial, sans-serif; display: flex; gap: 24px; justify-content: center; margin: 20px; background: #0d1b0d; color: #b6fcb6; }
+    #wrap { display: flex; flex-direction: column; align-items: center; }
+    h2 { margin: 10px 0 20px; color: #6bff6b; text-shadow: 0 0 8px #00ff00; }
+    #map { border: 2px solid #00ff66; background: radial-gradient(circle at center, #0a1a0a, #000); box-shadow: 0 0 20px #00ff66; }
+    table { border-collapse: collapse; width: 360px; background: #102510; box-shadow: 0 0 15px #00ff44; border-radius: 8px; overflow: hidden; }
+    th, td { border: 1px solid #00aa33; padding: 10px; text-align: center; }
+    th { background: #1a331a; color: #7aff7a; }
+    tr:nth-child(even) { background: #152815; }
+    tr:hover { background: #204020; }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <h2>📡 RF Localisatie Simulatie</h2>
+    <canvas id="map" width="1600" height="900"></canvas>
+  </div>
+  <div id="info">
+    <h3>🔍 Live Posities & RSSI</h3>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>X</th><th>Y</th><th>RSSI (dBm)</th></tr>
+      </thead>
+      <tbody id="pitbody"></tbody>
+    </table>
+
+    <h3>📱 Phone (geschat)</h3>
+    <table>
+      <thead><tr><th>X</th><th>Y</th></tr></thead>
+      <tbody><tr><td id="phonex">-</td><td id="phoney">-</td></tr></tbody>
+    </table>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("map");
+    const ctx = canvas.getContext("2d");
+
+    function draw(pis, phone, phone_distance) {
+  if (pis.length === 0) return;
+  const all = [...pis.map(p => p.pos), phone];
+  const xs = all.map(p => p[0]), ys = all.map(p => p[1]);
+  const minX = Math.min(...xs) - 1, maxX = Math.max(...xs) + 1;
+  const minY = Math.min(...ys) - 1, maxY = Math.max(...ys) + 1;
+  const scaleX = (canvas.width - 80) / Math.max(1e-6, (maxX - minX));
+  const scaleY = (canvas.height - 80) / Math.max(1e-6, (maxY - minY));
+  const X = x => 40 + (x - minX) * scaleX;
+  const Y = y => canvas.height - 40 - (y - minY) * scaleY;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // grid
+  ctx.strokeStyle = "#004400"; ctx.lineWidth = 1;
+  for (let gx = Math.floor(minX); gx <= Math.ceil(maxX); gx++) { ctx.beginPath(); ctx.moveTo(X(gx), Y(minY)); ctx.lineTo(X(gx), Y(maxY)); ctx.stroke(); }
+  for (let gy = Math.floor(minY); gy <= Math.ceil(maxY); gy++) { ctx.beginPath(); ctx.moveTo(X(minX), Y(gy)); ctx.lineTo(X(maxX), Y(gy)); ctx.stroke(); }
+
+  // Pi's
+  pis.forEach(p => {
+    ctx.fillStyle = (p.id === 1) ? "#33ccff" : "#33ff33";
+    ctx.beginPath(); ctx.arc(X(p.pos[0]), Y(p.pos[1]), 10, 0, 2*Math.PI); ctx.fill();
+    ctx.fillStyle = "#88ff88"; ctx.font = "14px Arial";
+    const label = (p.id === 1) ? "Central" : ("Pi" + p.id);
+    ctx.fillText(label, X(p.pos[0]) + 12, Y(p.pos[1]) - 12);
+  });
+
+  // Als er maar één Pi is: teken afstandscirkel
+  if (pis.length === 1 && phone_distance) {
+    const p = pis[0];
+    const scale = (canvas.width - 80) / Math.max(1e-6, (maxX - minX));
+    const radius = phone_distance * scale;
+    ctx.strokeStyle = "#ff5555";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(X(p.pos[0]), Y(p.pos[1]), radius, 0, 2 * Math.PI);
+    ctx.stroke();
+
+    ctx.fillStyle = "#ffaaaa";
+    ctx.font = "14px Arial";
+    ctx.fillText(`≈ ${phone_distance.toFixed(1)} m`, X(p.pos[0]) + 15, Y(p.pos[1]) - 15);
+  }
+
+  // Phone (als er een berekende positie is)
+  ctx.fillStyle = "#ff3333";
+  ctx.beginPath(); ctx.arc(X(phone[0]), Y(phone[1]), 10, 0, 2*Math.PI); ctx.fill();
+  ctx.fillStyle = "#ff8888"; ctx.font = "14px Arial";
+  ctx.fillText("Phone", X(phone[0]) + 12, Y(phone[1]) - 12);
+
+  document.getElementById("phonex").textContent = phone[0].toFixed(2);
+  document.getElementById("phoney").textContent = phone[1].toFixed(2);
+}
+
+
+    async function update() {
+      const res  = await fetch("/data?ts=" + Date.now(), { cache: "no-store" });
+      const data = await res.json();
+      
+
+      // tabel vullen
+      const tb = document.getElementById("pitbody");
+      tb.innerHTML = "";
+      data.pis.forEach(p => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${p.id}</td>
+          <td>${p.pos[0].toFixed(2)}</td>
+          <td>${p.pos[1].toFixed(2)}</td>
+          <td>${p.rssi.toFixed(1)}</td>`;
+        tb.appendChild(tr);
+      });
+
+      draw(data.pis, data.phone, data.phone_distance);
+    }
+
+    update();
+    setInterval(update, 500);
+  </script>
+</body>
+</html>
