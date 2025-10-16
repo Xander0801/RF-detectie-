@@ -1,7 +1,7 @@
 # wifi_1d_sender_adaptive.py — snelle, stabiele afstand met adaptieve filtering
 import subprocess, time, statistics, socket, json, shutil, re, collections, math, sys
 
-COLLECTOR_IP   = "10.93.182.89"   # <-- IP van je laptop
+COLLECTOR_IP   = "10.111.33.89"   # <-- IP van je laptop
 COLLECTOR_PORT = 5006
 
 # Kalibratie (zet na je 1 m meting)
