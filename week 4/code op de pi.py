@@ -8,7 +8,7 @@
 import subprocess, time, socket, json, shutil, re, sys
 
 # >>> VUL DIT IN: IP van je laptop (collector) en poort
-COLLECTOR_IP   = "10.93.182.89"
+COLLECTOR_IP   = "10.111.33.89"
 COLLECTOR_PORT = 5006
 
 # Meet- en stuurtempo
