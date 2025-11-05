@@ -52,8 +52,7 @@ def main():
 
     iface = get_connected_iface()
     host  = subprocess.getoutput("hostname")
-    print(f"[pi_rssi_sender_avg10_LoRa] {host} via {iface}", flush=True)
-
+    
     buf = []  # buffer met laatste losse polls
 
     while True:
