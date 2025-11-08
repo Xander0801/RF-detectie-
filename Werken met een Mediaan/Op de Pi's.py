@@ -1,28 +1,27 @@
+# pi_rssi_sender_raw.py
 import subprocess, time, socket, json, shutil, re, sys, os
 
-# >>> VUL DIT IN (of gebruik omgevingsvariabelen):
+# --- Instellingen (env-override mogelijk) ------------------------------------
 COLLECTOR_IP   = os.environ.get("COLLECTOR_IP", "10.0.0.1")
 COLLECTOR_PORT = int(os.environ.get("COLLECTOR_PORT", "5006"))
-
-# Poll- en zendtempo
-POLL_HZ        = float(os.environ.get("POLL_HZ", "10"))   # 10 Hz = elke 0.1 s
+POLL_HZ        = float(os.environ.get("POLL_HZ", "20"))   # 20 Hz → elke 0.05 s
 POLL_DT        = 1.0 / POLL_HZ
 
-# Interface detectie
+# Tools & interface
 DEFAULT_IFACE  = "wlan0"
 IW             = shutil.which("iw") or "/sbin/iw"
 WPA_CLI        = shutil.which("wpa_cli") or "wpa_cli"
 
+# --- Interface zoeken --------------------------------------------------------
 def get_connected_iface():
     """
-    Zoek een Wi-Fi interface die 'Connected' is; anders fallback naar DEFAULT_IFACE.
-    We lezen iw dev en dan per interface iw dev <if> link (status).
-    Docs: Linux Wireless 'iw' page (link in header).
+    Kies een Wi-Fi interface die 'Connected' is (via `iw dev <if> link`);
+    zo niet: fallback naar DEFAULT_IFACE.
+    Doc 'iw link' (veld 'signal: … dBm'): zie manpage-link in header.
     """
     try:
         out = subprocess.check_output([IW, "dev"], text=True, stderr=subprocess.DEVNULL)
-        ifaces = re.findall(r"Interface\s+(\S+)", out)
-        for ifn in ifaces:
+        for ifn in re.findall(r"Interface\s+(\S+)", out):
             try:
                 link = subprocess.check_output([IW, "dev", ifn, "link"], text=True)
                 if "Connected" in link:
@@ -33,13 +32,11 @@ def get_connected_iface():
         pass
     return DEFAULT_IFACE
 
+# --- RSSI polling ------------------------------------------------------------
 def poll_rssi_wpacli(iface):
     """
-    Snelle RSSI-poll via wpa_cli signal_poll.
-    Verwacht o.a. lijnen:
-        RSSI=-60
-        FREQUENCY=2412
-    (bronlink in header)
+    Snelle poll via `wpa_cli signal_poll` → lijn 'RSSI=-60'.
+    Zie wpa_cli bron/man: link in header.
     """
     try:
         out = subprocess.check_output([WPA_CLI, "-i", iface, "signal_poll"], text=True)
@@ -52,32 +49,30 @@ def poll_rssi_wpacli(iface):
 
 def poll_rssi_iw(iface):
     """
-    Fallback: parse 'iw dev <iface> link' → 'signal: -60 dBm'
-    (docs gelinkt in header)
+    Fallback: parse `iw dev <iface> link` → 'signal: -60 dBm'.
     """
     try:
         out = subprocess.check_output([IW, "dev", iface, "link"], text=True)
         for ln in out.splitlines():
             if "signal:" in ln:
-                v = ln.split("signal:")[1].split("dBm")[0].strip()
-                return float(v)
+                val = ln.split("signal:")[1].split("dBm")[0].strip()
+                return float(val)
     except Exception:
         pass
     return None
 
 def poll_rssi(iface):
-    """Probeer eerst wpa_cli, dan iw."""
+    """Eerst wpa_cli, anders iw."""
     r = poll_rssi_wpacli(iface)
-    if r is not None:
-        return r
-    return poll_rssi_iw(iface)
+    return r if r is not None else poll_rssi_iw(iface)
 
+# --- Main loop: meten en via UDP sturen --------------------------------------
 def main():
     iface = get_connected_iface()
     host  = socket.gethostname()
     print(f"[pi_rssi_sender_raw] {host} via {iface} → {COLLECTOR_IP}:{COLLECTOR_PORT} | {POLL_HZ:.1f} Hz", flush=True)
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP socket
 
     while True:
         t0 = time.monotonic()
@@ -86,15 +81,15 @@ def main():
         if rssi is not None:
             msg = {"pi": host, "ts": time.time(), "rssi_dbm": round(float(rssi), 2)}
             try:
-                # UDP JSON → bytes (socket.sendto docs gelinkt in header)
+                # UDP JSON versturen (socket.sendto)
                 sock.sendto(json.dumps(msg).encode("utf-8"), (COLLECTOR_IP, COLLECTOR_PORT))
             except Exception as e:
                 print("[send-err]", e, file=sys.stderr)
 
-        # Nauwkeurige pauze om ~POLL_HZ aan te houden
+        # Houd ongeveer POLL_HZ aan
         time.sleep(max(0.0, POLL_DT - (time.monotonic() - t0)))
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
