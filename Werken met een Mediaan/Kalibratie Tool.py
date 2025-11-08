@@ -1,0 +1,214 @@
+# rssi_calibrator_minimal_static_fit_fixed.py
+import matplotlib
+matplotlib.use("TkAgg")
+
+import socket, json, time, threading, collections, csv, os
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Button, RadioButtons, Slider
+
+PORT, MED_WINDOW = 5006, 250
+ANC_ORDER = ["A", "B", "C"]
+
+ip_to_key, unused_keys = {}, ANC_ORDER.copy()
+last_ts  = {k: 0.0 for k in ANC_ORDER}
+pi_name  = {k: ""  for k in ANC_ORDER}
+buffers  = {k: collections.deque(maxlen=MED_WINDOW) for k in ANC_ORDER}
+fill_on  = {k: False for k in ANC_ORDER}
+
+points = []                                   # {"key","dist","rssi","ts","samples"}
+state  = {"selected_key": "A", "DIST": 1.0}   # huidige Pi + afstand
+
+rec_active = False
+_rec_rows, _rec_lock = [], threading.Lock()
+CSV_HEADER = ["event","host_time","key","pi_name","payload_ts",
+              "rssi_dbm","agg_mode","agg_N","dist_m","rssi_value","samples_in_buffer"]
+
+def _rec_add(row):
+    if not rec_active: return
+    with _rec_lock: _rec_rows.append({k: row.get(k, "") for k in CSV_HEADER})
+
+def _rec_export():
+    if not _rec_rows: return None
+    fname = f"rssi_session_{time.strftime('%Y%m%d_%H%M%S')}.csv"
+    try:
+        with _rec_lock: rows = list(_rec_rows)
+        with open(fname, "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=CSV_HEADER)
+            w.writeheader(); w.writerows(rows)
+        return os.path.abspath(fname)
+    except OSError:
+        return None
+
+def current_median(key):
+    buf = buffers[key]
+    if not buf: return None, 0
+    arr = np.asarray(buf, float)
+    return float(np.median(arr)), len(arr)
+
+def fit_log_model(distances, rssi_values):
+    ds = np.asarray(distances, float); ys = np.asarray(rssi_values, float)
+    mask = ds > 0
+    if np.sum(mask) < 2: raise ValueError("min. 2 punten met d>0 nodig")
+    x = np.log10(ds[mask]); y = ys[mask]
+    X = np.vstack([np.ones_like(x), x]).T
+    coef, *_ = np.linalg.lstsq(X, y, rcond=None)
+    a, b = float(coef[0]), float(coef[1])
+    yhat = X @ coef
+    ss_res = float(np.sum((y - yhat)**2))
+    ss_tot = float(np.sum((y - np.mean(y))**2))
+    r2 = 1.0 - ss_res/ss_tot if ss_tot > 0 else 1.0
+    return a, b, (-b/10.0), r2
+
+def clear_buffer(key): buffers[key].clear()
+
+def listener():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(("", PORT))
+    print(f"[CAL] listening UDP :{PORT}")
+    while True:
+        data, addr = sock.recvfrom(65535)
+        ip, _ = addr; host_now = time.time()
+        try:
+            m = json.loads(data.decode("utf-8", errors="replace").strip())
+        except json.JSONDecodeError:
+            continue
+        key = ip_to_key.get(ip)
+        if key is None and unused_keys:
+            key = unused_keys.pop(0); ip_to_key[ip] = key
+            print(f"[assign] {ip} → {key}")
+        if key is None: continue
+        try:
+            rssi = float(m["rssi_dbm"]); ts = float(m["ts"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if m.get("pi"): pi_name[key] = str(m["pi"])
+        last_ts[key] = ts
+        if fill_on.get(key, False): buffers[key].append(rssi)
+        _rec_add({
+            "event":"RAW","host_time":f"{host_now:.3f}","key":key,"pi_name":pi_name.get(key,""),
+            "payload_ts":f"{ts:.3f}","rssi_dbm":f"{rssi:.2f}","agg_mode":"median","agg_N":str(MED_WINDOW),
+            "dist_m":"","rssi_value":"","samples_in_buffer":""
+        })
+
+def main():
+    threading.Thread(target=listener, daemon=True).start()
+
+    plt.rcParams.update({"font.size": 10})
+    fig = plt.figure(figsize=(12.0, 7.2))
+    # ruime ondermarge en duidelijke layout (add_axes gebruikt figuurfracties)
+    fig.subplots_adjust(left=0.06, right=0.98, bottom=0.16, top=0.94)
+
+    # Rechter plot (statische assen)
+    ax = fig.add_axes([0.40, 0.22, 0.58, 0.70])
+    ax.set_title("Calibration: RSSI (dBm) vs distance (m)")
+    ax.set_xlabel("distance d (m)")
+    ax.set_ylabel("RSSI (dBm)")
+    ax.grid(True, alpha=0.25)
+    ax.set_xlim(0.0, 10.0)
+    ax.set_ylim(-100.0, -30.0)
+    scat = ax.scatter([], [], label="points")
+    fit_line, = ax.plot([], [], lw=1.8, label="fit")
+    ax.legend(loc="lower right")
+
+    # a,b,n,R² linksboven in de grafiek (as-coördinaten → nooit overlap met x-as)
+    metrics_txt = ax.text(
+        0.02, 0.98, "Add \u2265 2 points with d>0 to compute a, b, n, R\u00b2",
+        transform=ax.transAxes, va="top", ha="left",
+        bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="0.8", alpha=0.9)
+    )
+
+    # Linker bediening
+    ax_radio = fig.add_axes([0.06, 0.78, 0.26, 0.12]); ax_radio.set_title("Select Pi")
+    radio = RadioButtons(ax_radio, ANC_ORDER, active=0)
+    def on_radio(label):
+        state["selected_key"] = label
+        for k in ANC_ORDER: fill_on[k] = False
+        clear_buffer(label)
+    radio.on_clicked(on_radio)
+
+    ax_dist = fig.add_axes([0.06, 0.70, 0.26, 0.05])
+    sl_dist = Slider(ax_dist, "Distance (m)", 0.0, 10.0, valinit=state["DIST"], valstep=0.5)
+    # Zorg dat het label *binnen* de slider-as valt en niet wordt afgesneden
+    sl_dist.label.set_horizontalalignment("left")
+    sl_dist.label.set_x(0.02)
+    sl_dist.on_changed(lambda v: state.update(DIST=float(v)))
+
+    ax_start = fig.add_axes([0.06, 0.58, 0.12, 0.07]); btn_start = Button(ax_start, "Start buffer")
+    ax_fix   = fig.add_axes([0.20, 0.58, 0.12, 0.07]); btn_fix   = Button(ax_fix,   "Fix point")
+    ax_undo  = fig.add_axes([0.06, 0.49, 0.12, 0.07]); btn_undo  = Button(ax_undo,  "Undo")
+    ax_clear = fig.add_axes([0.20, 0.49, 0.12, 0.07]); btn_clear = Button(ax_clear, "Clear")
+
+    ax_rec_start = fig.add_axes([0.06, 0.33, 0.12, 0.07]); btn_rec_start = Button(ax_rec_start, "Start rec")
+    ax_rec_stop  = fig.add_axes([0.20, 0.33, 0.12, 0.07]); btn_rec_stop  = Button(ax_rec_stop,  "Stop+Export")
+
+    ax_status = fig.add_axes([0.06, 0.22, 0.26, 0.07]); ax_status.axis("off")
+    status_txt = ax_status.text(0.0, 0.5, "Rec: OFF | rows=0", va="center", family="monospace")
+
+    def _status(extra=""):
+        with _rec_lock: n = len(_rec_rows)
+        k = state["selected_key"]; _, cnt = current_median(k)
+        s = f"Rec: {'ON' if rec_active else 'OFF'} | rows={n} | Buffer[{k}]: {'FILL' if fill_on[k] else 'PAUSE'} {cnt}/{MED_WINDOW}"
+        if extra: s += f" | {extra}"
+        status_txt.set_text(s)
+
+    def on_start(_):
+        k = state["selected_key"]; clear_buffer(k)
+        for kk in ANC_ORDER: fill_on[kk] = False
+        fill_on[k] = True; _status("buffer started")
+
+    def on_fix(_):
+        k = state["selected_key"]; med, cnt = current_median(k)
+        if med is None: _status("no samples"); return
+        d = float(state["DIST"])
+        points.append({"key": k, "dist": d, "rssi": med, "ts": time.time(), "samples": cnt})
+        _rec_add({
+            "event":"LEG_VAST","host_time":f"{time.time():.3f}","key":k,"pi_name":pi_name.get(k,""),
+            "payload_ts":"","rssi_dbm":"","agg_mode":"median","agg_N":str(MED_WINDOW),
+            "dist_m":f"{d:.3f}","rssi_value":f"{med:.2f}","samples_in_buffer":str(cnt)
+        })
+        clear_buffer(k); fill_on[k] = False; _status("point fixed")
+
+    def on_undo(_):
+        if points: points.pop(); _status("undo")
+
+    def on_clear(_):
+        points.clear(); _status("cleared")
+
+    def on_rec_start(_):
+        global rec_active, _rec_rows
+        with _rec_lock: _rec_rows = []
+        rec_active = True; _status("rec started")
+
+    def on_rec_stop(_):
+        global rec_active
+        rec_active = False
+        path = _rec_export()
+        _status("CSV saved" if path else "no data")
+
+    btn_start.on_clicked(on_start); btn_fix.on_clicked(on_fix)
+    btn_undo.on_clicked(on_undo);   btn_clear.on_clicked(on_clear)
+    btn_rec_start.on_clicked(on_rec_start); btn_rec_stop.on_clicked(on_rec_stop)
+
+    while True:
+        xs = [p["dist"] for p in points]; ys = [p["rssi"] for p in points]
+        scat.set_offsets(np.c_[xs, ys] if xs else np.empty((0, 2)))
+
+        if len(xs) >= 2 and np.sum(np.asarray(xs) > 0) >= 2:
+            try:
+                a, b, n, r2 = fit_log_model(xs, ys)
+                xfit = np.linspace(0.1, 10.0, 200)  # 0.1 om log10(0) te vermijden
+                fit_line.set_data(xfit, a + b * np.log10(xfit))
+                metrics_txt.set_text(f"a={a:.2f} dBm   b={b:.3f}   n={n:.3f}   R\u00b2={r2:.3f}")
+            except Exception as e:
+                fit_line.set_data([], []); metrics_txt.set_text(f"Fit error: {e}")
+        else:
+            fit_line.set_data([], [])
+            metrics_txt.set_text("Add \u2265 2 points with d>0 to compute a, b, n, R\u00b2")
+
+        _status()
+        fig.canvas.draw_idle()
+        plt.pause(0.05)
+
+if __name__ == "__main__":
+    main()
