@@ -2,7 +2,7 @@
 import serial, time, json, subprocess, re, shutil, os, sys
 
 # --- Instellingen ------------------------------------------------------------
-SERIAL_PORT = "/dev/ttyUSB0"  # pas aan als nodig
+SERIAL_PORT = "/dev/ttyACM0"  # LilyGO T3 via USB  pas aan als nodig
 BAUDRATE    = 115200          # standaard ESP32
 POLL_HZ     = float(os.environ.get("POLL_HZ", "20"))
 POLL_DT     = 1.0 / POLL_HZ
@@ -52,16 +52,16 @@ def poll_rssi(iface):
     r = poll_rssi_wpacli(iface)
     return r if r is not None else poll_rssi_iw(iface)
 
-# --- Main loop: meten en via seriële poort sturen ----------------------------
+# --- Main loop: meten en via seriÃ«le poort sturen ----------------------------
 def main():
     iface = get_connected_iface()
     host  = subprocess.getoutput("hostname")
-    print(f"[pi_rssi_sender_serial] {host} via {iface} → Serial TX @ {POLL_HZ:.1f} Hz", flush=True)
+    print(f"[pi_rssi_sender_serial] {host} via {iface} â†’ Serial TX @ {POLL_HZ:.1f} Hz", flush=True)
 
     try:
         ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=1)
     except Exception as e:
-        print(f"Kan seriële poort {SERIAL_PORT} niet openen:", e)
+        print(f"Kan seriÃ«le poort {SERIAL_PORT} niet openen:", e)
         sys.exit(1)
 
     while True:
