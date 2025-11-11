@@ -1,11 +1,11 @@
-# pi_rssi_sender_lora.py
-import subprocess, time, json, shutil, re, sys, os
-from SX127x.LoRa import LoRa
-from SX127x.board_config import BOARD
+# pi_rssi_sender_serial.py
+import serial, time, json, subprocess, re, shutil, os, sys
 
 # --- Instellingen ------------------------------------------------------------
-POLL_HZ = float(os.environ.get("POLL_HZ", "20"))   # 20 Hz → elke 0.05 s
-POLL_DT = 1.0 / POLL_HZ
+SERIAL_PORT = "/dev/ttyUSB0"  # pas aan als nodig
+BAUDRATE    = 115200          # standaard ESP32
+POLL_HZ     = float(os.environ.get("POLL_HZ", "20"))
+POLL_DT     = 1.0 / POLL_HZ
 
 DEFAULT_IFACE = "wlan0"
 IW      = shutil.which("iw") or "/sbin/iw"
@@ -13,7 +13,6 @@ WPA_CLI = shutil.which("wpa_cli") or "wpa_cli"
 
 # --- Interface zoeken --------------------------------------------------------
 def get_connected_iface():
-    """Zoek een Wi-Fi interface die 'Connected' is; anders fallback naar wlan0."""
     try:
         out = subprocess.check_output([IW, "dev"], text=True, stderr=subprocess.DEVNULL)
         for ifn in re.findall(r"Interface\s+(\S+)", out):
@@ -27,9 +26,8 @@ def get_connected_iface():
         pass
     return DEFAULT_IFACE
 
-# --- RSSI meting -------------------------------------------------------------
+# --- RSSI meten --------------------------------------------------------------
 def poll_rssi_wpacli(iface):
-    """Meet RSSI via `wpa_cli signal_poll`."""
     try:
         out = subprocess.check_output([WPA_CLI, "-i", iface, "signal_poll"], text=True)
         for ln in out.splitlines():
@@ -40,7 +38,6 @@ def poll_rssi_wpacli(iface):
     return None
 
 def poll_rssi_iw(iface):
-    """Fallback: parse `iw dev <iface> link` → 'signal: -60 dBm'."""
     try:
         out = subprocess.check_output([IW, "dev", iface, "link"], text=True)
         for ln in out.splitlines():
@@ -52,20 +49,20 @@ def poll_rssi_iw(iface):
     return None
 
 def poll_rssi(iface):
-    """Eerst wpa_cli, anders iw."""
     r = poll_rssi_wpacli(iface)
     return r if r is not None else poll_rssi_iw(iface)
 
-# --- Main loop: meten en via LoRa sturen -------------------------------------
+# --- Main loop: meten en via seriële poort sturen ----------------------------
 def main():
-    # LoRa setup
-    BOARD.setup()
-    lora = LoRa(verbose=False)
-    lora.set_mode_tx()
-
     iface = get_connected_iface()
     host  = subprocess.getoutput("hostname")
-    print(f"[pi_rssi_sender_lora] {host} via {iface} → LoRa TX @ {POLL_HZ:.1f} Hz", flush=True)
+    print(f"[pi_rssi_sender_serial] {host} via {iface} → Serial TX @ {POLL_HZ:.1f} Hz", flush=True)
+
+    try:
+        ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=1)
+    except Exception as e:
+        print(f"Kan seriële poort {SERIAL_PORT} niet openen:", e)
+        sys.exit(1)
 
     while True:
         t0 = time.monotonic()
@@ -74,13 +71,10 @@ def main():
         if rssi is not None:
             msg = {"pi": host, "ts": time.time(), "rssi_dbm": round(float(rssi), 2)}
             try:
-                # JSON-payload via LoRa verzenden
-                data_bytes = json.dumps(msg).encode('utf-8')
-                lora.write_payload(data_bytes)
+                ser.write((json.dumps(msg) + "\n").encode("utf-8"))
             except Exception as e:
-                print("[LoRa-send error]", e, file=sys.stderr)
+                print("[Serial send error]", e, file=sys.stderr)
 
-        # Houd ongeveer POLL_HZ aan
         time.sleep(max(0.0, POLL_DT - (time.monotonic() - t0)))
 
 if __name__ == "__main__":
