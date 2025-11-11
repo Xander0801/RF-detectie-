@@ -35,7 +35,6 @@ raw_log  = collections.deque(maxlen=RAW_KEEP)
 # Helpers
 # =============================
 def fmt_raw(ip, port, key, m):
-    """Maak 1 compacte RAW-regel (tijd, IP, key, rssi)."""
     try:
         r = float(m.get("rssi_dbm", 0.0)); ts = float(m.get("ts", time.time()))
     except Exception:
@@ -45,18 +44,9 @@ def fmt_raw(ip, port, key, m):
     return f"{t} {ip}:{port} [{k}] rssi={r:.1f}"[:70]
 
 def rssi_to_dist(rssi, rssi1m, n):
-    """
-    Log-distance path loss:
-        d = 10 ** ((rssi1m - rssi) / (10*n))
-    Zie model-achtergrond: https://en.wikipedia.org/wiki/Log-distance_path_loss_model
-    """
     return 10 ** ((rssi1m - rssi) / (10.0 * n))
 
 def trilaterate(points_xy, dists):
-    """
-    Lineariseer cirkels tov anker 1 en los A*x=b met least squares:
-    np.linalg.lstsq docs: https://numpy.org/doc/2.2/reference/generated/numpy.linalg.lstsq.html
-    """
     (x1, y1), d1 = points_xy[0], dists[0]
     A, b = [], []
     for (xi, yi), di in zip(points_xy[1:], dists[1:]):
