@@ -14,11 +14,6 @@ WPA_CLI        = shutil.which("wpa_cli") or "wpa_cli"
 
 # --- Interface zoeken --------------------------------------------------------
 def get_connected_iface():
-    """
-    Kies een Wi-Fi interface die 'Connected' is (via `iw dev <if> link`);
-    zo niet: fallback naar DEFAULT_IFACE.
-    Doc 'iw link' (veld 'signal: … dBm'): zie manpage-link in header.
-    """
     try:
         out = subprocess.check_output([IW, "dev"], text=True, stderr=subprocess.DEVNULL)
         for ifn in re.findall(r"Interface\s+(\S+)", out):
@@ -34,10 +29,6 @@ def get_connected_iface():
 
 # --- RSSI polling ------------------------------------------------------------
 def poll_rssi_wpacli(iface):
-    """
-    Snelle poll via `wpa_cli signal_poll` → lijn 'RSSI=-60'.
-    Zie wpa_cli bron/man: link in header.
-    """
     try:
         out = subprocess.check_output([WPA_CLI, "-i", iface, "signal_poll"], text=True)
         for ln in out.splitlines():
@@ -48,9 +39,6 @@ def poll_rssi_wpacli(iface):
     return None
 
 def poll_rssi_iw(iface):
-    """
-    Fallback: parse `iw dev <iface> link` → 'signal: -60 dBm'.
-    """
     try:
         out = subprocess.check_output([IW, "dev", iface, "link"], text=True)
         for ln in out.splitlines():
@@ -62,7 +50,6 @@ def poll_rssi_iw(iface):
     return None
 
 def poll_rssi(iface):
-    """Eerst wpa_cli, anders iw."""
     r = poll_rssi_wpacli(iface)
     return r if r is not None else poll_rssi_iw(iface)
 
