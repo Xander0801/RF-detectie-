@@ -33,13 +33,11 @@ CSV_HEADER = [
 ]
 
 def _rec_add(row):
-    """Voeg rij toe aan opnamesessie (als rec_active=True)."""
     if not rec_active: return
     with _rec_lock:
         _rec_rows.append({k: row.get(k, "") for k in CSV_HEADER})
 
 def _rec_export():
-    """Schrijf opnamesessie weg naar timestamped CSV; retourneer pad of None."""
     if not _rec_rows: return None
     fname = f"rssi_session_{time.strftime('%Y%m%d_%H%M%S')}.csv"
     try:
@@ -56,17 +54,12 @@ def _rec_export():
 # Meet/fit helpers
 # -----------------------------
 def current_median(key):
-    """Mediane RSSI en samplecount uit buffer van key (of (None,0))."""
     buf = buffers[key]
     if not buf: return None, 0
     arr = np.asarray(buf, float)
     return float(np.median(arr)), len(arr)
 
 def fit_log_model(distances, rssi_values):
-    """
-    Fit rssi = a + b*log10(d) met least squares.
-    Retourneert: a, b, n(-b/10), R^2.
-    """
     ds = np.asarray(distances, float); ys = np.asarray(rssi_values, float)
     mask = ds > 0
     if np.sum(mask) < 2: raise ValueError("min. 2 punten met d>0 nodig")
@@ -81,7 +74,6 @@ def fit_log_model(distances, rssi_values):
     return a, b, (-b/10.0), r2
 
 def clear_buffer(key):
-    """Leeg de mediane buffer van key."""
     buffers[key].clear()
 
 # -----------------------------
@@ -184,7 +176,6 @@ def main():
     status_txt = ax_status.text(0.0, 0.5, "Rec: OFF | rows=0", va="center", family="monospace")
 
     def _status(extra=""):
-        """Werk statusregel bij: opname, aantal rijen, bufferstand/size."""
         with _rec_lock: n = len(_rec_rows)
         k = state["selected_key"]; _, cnt = current_median(k)
         s = f"Rec: {'ON' if rec_active else 'OFF'} | rows={n} | Buffer[{k}]: {'FILL' if fill_on[k] else 'PAUSE'} {cnt}/{MED_WINDOW}"
@@ -193,13 +184,11 @@ def main():
 
     # --- Button handlers -----------------------------------------------------
     def on_start(_):
-        """Start vullen van de mediane buffer voor de huidige Pi."""
         k = state["selected_key"]; clear_buffer(k)
         for kk in ANC_ORDER: fill_on[kk] = False
         fill_on[k] = True; _status("buffer started")
 
     def on_fix(_):
-        """Leg punt vast met (afstand, mediane RSSI, #samples) en pauzeer buffer."""
         k = state["selected_key"]; med, cnt = current_median(k)
         if med is None: _status("no samples"); return
         d = float(state["DIST"])
@@ -218,13 +207,11 @@ def main():
         points.clear(); _status("cleared")
 
     def on_rec_start(_):
-        """Start nieuwe CSV-opnamesessie (reset buffer met rijen)."""
         global rec_active, _rec_rows
         with _rec_lock: _rec_rows = []
         rec_active = True; _status("rec started")
 
     def on_rec_stop(_):
-        """Stop opname en exporteer CSV (indien data)."""
         global rec_active
         rec_active = False
         path = _rec_export()
