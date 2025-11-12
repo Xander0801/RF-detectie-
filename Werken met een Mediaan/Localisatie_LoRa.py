@@ -84,10 +84,11 @@ def listener():
                 continue
 
             # Eerste 3 unieke apparaten krijgen A/B/C
-            key = ip_to_key.get("lora")
+            device_id = m["pi"]  # unieke hostnaam van Pi
+            key = ip_to_key.get(device_id)
             if key is None and unused_keys:
                 key = unused_keys.pop(0)
-                ip_to_key["lora"] = key
+                ip_to_key[device_id] = key
                 print(f"[assign] LORA → {key}")
 
             raw_log.appendleft(fmt_raw("lora", 0, key, m))
