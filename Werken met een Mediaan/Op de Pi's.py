@@ -103,7 +103,7 @@ def main():
 
         rssi = poll_rssi(iface)
         if rssi is not None:
-            msg = {"pi": host, "ts": time.time(), "rssi_dbm": round(float(rssi), 2)}
+            msg = {"pi": host, "ts": time.time(), "rssi_dbm": float(rssi)}
             try:
                 # UDP JSON → bytes (socket.sendto docs gelinkt in header)
                 sock.sendto(json.dumps(msg).encode("utf-8"), (COLLECTOR_IP, COLLECTOR_PORT))
