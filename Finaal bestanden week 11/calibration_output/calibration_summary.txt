@@ -1,0 +1,121 @@
+# Calibration summary per host_ip en afstand
+# Elke regel: host_ip, dist_m, aantal samples, median, p5, p95
+# Dit kun je hierna in een ChatGPT-chat plakken om de lokalisatie-code
+# aan te passen (bijv. cirkels tekenen op basis van p5/p95).
+
+CALIBRATION_STATS = {
+# host_ip=172.20.10.2  dist=0.00 m  n=592  median=-33.00 dBm  p5=-34.00 dBm  p95=-32.00 dBm
+    '172.20.10.2': {
+        0.000: {'count': 592, 'median': -33.000, 'p5': -34.000, 'p95': -32.000},
+# host_ip=172.20.10.2  dist=0.25 m  n=1017  median=-38.00 dBm  p5=-39.00 dBm  p95=-37.00 dBm
+        0.250: {'count': 1017, 'median': -38.000, 'p5': -39.000, 'p95': -37.000},
+# host_ip=172.20.10.2  dist=0.50 m  n=942  median=-50.00 dBm  p5=-52.00 dBm  p95=-49.00 dBm
+        0.500: {'count': 942, 'median': -50.000, 'p5': -52.000, 'p95': -49.000},
+# host_ip=172.20.10.2  dist=0.75 m  n=675  median=-61.00 dBm  p5=-63.00 dBm  p95=-60.00 dBm
+        0.750: {'count': 675, 'median': -61.000, 'p5': -63.000, 'p95': -60.000},
+# host_ip=172.20.10.2  dist=1.00 m  n=634  median=-58.00 dBm  p5=-59.00 dBm  p95=-56.00 dBm
+        1.000: {'count': 634, 'median': -58.000, 'p5': -59.000, 'p95': -56.000},
+# host_ip=172.20.10.2  dist=1.50 m  n=560  median=-58.00 dBm  p5=-60.00 dBm  p95=-57.00 dBm
+        1.500: {'count': 560, 'median': -58.000, 'p5': -60.000, 'p95': -57.000},
+# host_ip=172.20.10.2  dist=2.00 m  n=546  median=-63.00 dBm  p5=-65.00 dBm  p95=-60.00 dBm
+        2.000: {'count': 546, 'median': -63.000, 'p5': -65.000, 'p95': -60.000},
+# host_ip=172.20.10.2  dist=2.50 m  n=557  median=-63.00 dBm  p5=-65.00 dBm  p95=-61.00 dBm
+        2.500: {'count': 557, 'median': -63.000, 'p5': -65.000, 'p95': -61.000},
+# host_ip=172.20.10.2  dist=3.00 m  n=593  median=-75.00 dBm  p5=-77.00 dBm  p95=-72.00 dBm
+        3.000: {'count': 593, 'median': -75.000, 'p5': -77.000, 'p95': -72.000},
+# host_ip=172.20.10.2  dist=3.50 m  n=557  median=-69.00 dBm  p5=-72.00 dBm  p95=-68.00 dBm
+        3.500: {'count': 557, 'median': -69.000, 'p5': -72.000, 'p95': -68.000},
+# host_ip=172.20.10.2  dist=4.00 m  n=576  median=-67.00 dBm  p5=-69.00 dBm  p95=-64.00 dBm
+        4.000: {'count': 576, 'median': -67.000, 'p5': -69.000, 'p95': -64.000},
+# host_ip=172.20.10.2  dist=4.50 m  n=562  median=-66.00 dBm  p5=-67.00 dBm  p95=-65.00 dBm
+        4.500: {'count': 562, 'median': -66.000, 'p5': -67.000, 'p95': -65.000},
+# host_ip=172.20.10.2  dist=5.00 m  n=559  median=-64.00 dBm  p5=-65.00 dBm  p95=-63.00 dBm
+        5.000: {'count': 559, 'median': -64.000, 'p5': -65.000, 'p95': -63.000},
+# host_ip=172.20.10.2  dist=6.00 m  n=547  median=-65.00 dBm  p5=-67.00 dBm  p95=-64.00 dBm
+        6.000: {'count': 547, 'median': -65.000, 'p5': -67.000, 'p95': -64.000},
+# host_ip=172.20.10.2  dist=7.00 m  n=551  median=-76.00 dBm  p5=-79.00 dBm  p95=-70.00 dBm
+        7.000: {'count': 551, 'median': -76.000, 'p5': -79.000, 'p95': -70.000},
+# host_ip=172.20.10.2  dist=8.00 m  n=548  median=-68.00 dBm  p5=-69.00 dBm  p95=-67.00 dBm
+        8.000: {'count': 548, 'median': -68.000, 'p5': -69.000, 'p95': -67.000},
+# host_ip=172.20.10.2  dist=9.00 m  n=565  median=-73.00 dBm  p5=-75.00 dBm  p95=-70.00 dBm
+        9.000: {'count': 565, 'median': -73.000, 'p5': -75.000, 'p95': -70.000},
+# host_ip=172.20.10.2  dist=10.00 m  n=551  median=-73.00 dBm  p5=-75.00 dBm  p95=-71.00 dBm
+        10.000: {'count': 551, 'median': -73.000, 'p5': -75.000, 'p95': -71.000},
+# host_ip=172.20.10.3  dist=0.00 m  n=502  median=-30.00 dBm  p5=-30.00 dBm  p95=-29.00 dBm
+    },
+    '172.20.10.3': {
+        0.000: {'count': 502, 'median': -30.000, 'p5': -30.000, 'p95': -29.000},
+# host_ip=172.20.10.3  dist=0.25 m  n=512  median=-43.00 dBm  p5=-44.00 dBm  p95=-42.00 dBm
+        0.250: {'count': 512, 'median': -43.000, 'p5': -44.000, 'p95': -42.000},
+# host_ip=172.20.10.3  dist=0.50 m  n=513  median=-51.00 dBm  p5=-54.00 dBm  p95=-49.00 dBm
+        0.500: {'count': 513, 'median': -51.000, 'p5': -54.000, 'p95': -49.000},
+# host_ip=172.20.10.3  dist=0.75 m  n=531  median=-55.00 dBm  p5=-58.00 dBm  p95=-53.00 dBm
+        0.750: {'count': 531, 'median': -55.000, 'p5': -58.000, 'p95': -53.000},
+# host_ip=172.20.10.3  dist=1.00 m  n=533  median=-58.00 dBm  p5=-60.40 dBm  p95=-55.00 dBm
+        1.000: {'count': 533, 'median': -58.000, 'p5': -60.400, 'p95': -55.000},
+# host_ip=172.20.10.3  dist=1.50 m  n=530  median=-61.00 dBm  p5=-62.00 dBm  p95=-59.00 dBm
+        1.500: {'count': 530, 'median': -61.000, 'p5': -62.000, 'p95': -59.000},
+# host_ip=172.20.10.3  dist=2.00 m  n=509  median=-66.00 dBm  p5=-68.00 dBm  p95=-63.00 dBm
+        2.000: {'count': 509, 'median': -66.000, 'p5': -68.000, 'p95': -63.000},
+# host_ip=172.20.10.3  dist=2.50 m  n=527  median=-66.00 dBm  p5=-69.00 dBm  p95=-65.00 dBm
+        2.500: {'count': 527, 'median': -66.000, 'p5': -69.000, 'p95': -65.000},
+# host_ip=172.20.10.3  dist=3.00 m  n=540  median=-65.00 dBm  p5=-67.00 dBm  p95=-63.00 dBm
+        3.000: {'count': 540, 'median': -65.000, 'p5': -67.000, 'p95': -63.000},
+# host_ip=172.20.10.3  dist=3.50 m  n=523  median=-70.00 dBm  p5=-72.00 dBm  p95=-69.00 dBm
+        3.500: {'count': 523, 'median': -70.000, 'p5': -72.000, 'p95': -69.000},
+# host_ip=172.20.10.3  dist=4.00 m  n=527  median=-70.00 dBm  p5=-73.00 dBm  p95=-68.00 dBm
+        4.000: {'count': 527, 'median': -70.000, 'p5': -73.000, 'p95': -68.000},
+# host_ip=172.20.10.3  dist=4.50 m  n=525  median=-69.00 dBm  p5=-70.00 dBm  p95=-66.00 dBm
+        4.500: {'count': 525, 'median': -69.000, 'p5': -70.000, 'p95': -66.000},
+# host_ip=172.20.10.3  dist=5.00 m  n=527  median=-71.00 dBm  p5=-74.00 dBm  p95=-69.00 dBm
+        5.000: {'count': 527, 'median': -71.000, 'p5': -74.000, 'p95': -69.000},
+# host_ip=172.20.10.3  dist=6.00 m  n=534  median=-67.00 dBm  p5=-68.00 dBm  p95=-66.00 dBm
+        6.000: {'count': 534, 'median': -67.000, 'p5': -68.000, 'p95': -66.000},
+# host_ip=172.20.10.3  dist=7.00 m  n=528  median=-76.00 dBm  p5=-77.00 dBm  p95=-74.00 dBm
+        7.000: {'count': 528, 'median': -76.000, 'p5': -77.000, 'p95': -74.000},
+# host_ip=172.20.10.3  dist=8.00 m  n=528  median=-70.00 dBm  p5=-72.00 dBm  p95=-69.00 dBm
+        8.000: {'count': 528, 'median': -70.000, 'p5': -72.000, 'p95': -69.000},
+# host_ip=172.20.10.3  dist=9.00 m  n=613  median=-72.00 dBm  p5=-74.00 dBm  p95=-71.00 dBm
+        9.000: {'count': 613, 'median': -72.000, 'p5': -74.000, 'p95': -71.000},
+# host_ip=172.20.10.3  dist=10.00 m  n=544  median=-74.00 dBm  p5=-77.00 dBm  p95=-73.00 dBm
+        10.000: {'count': 544, 'median': -74.000, 'p5': -77.000, 'p95': -73.000},
+# host_ip=172.20.10.4  dist=0.00 m  n=511  median=-28.00 dBm  p5=-29.00 dBm  p95=-27.00 dBm
+    },
+    '172.20.10.4': {
+        0.000: {'count': 511, 'median': -28.000, 'p5': -29.000, 'p95': -27.000},
+# host_ip=172.20.10.4  dist=0.25 m  n=528  median=-36.00 dBm  p5=-37.00 dBm  p95=-34.00 dBm
+        0.250: {'count': 528, 'median': -36.000, 'p5': -37.000, 'p95': -34.000},
+# host_ip=172.20.10.4  dist=0.50 m  n=515  median=-45.00 dBm  p5=-47.00 dBm  p95=-44.00 dBm
+        0.500: {'count': 515, 'median': -45.000, 'p5': -47.000, 'p95': -44.000},
+# host_ip=172.20.10.4  dist=0.75 m  n=529  median=-49.00 dBm  p5=-50.00 dBm  p95=-49.00 dBm
+        0.750: {'count': 529, 'median': -49.000, 'p5': -50.000, 'p95': -49.000},
+# host_ip=172.20.10.4  dist=1.00 m  n=532  median=-53.00 dBm  p5=-54.00 dBm  p95=-52.00 dBm
+        1.000: {'count': 532, 'median': -53.000, 'p5': -54.000, 'p95': -52.000},
+# host_ip=172.20.10.4  dist=1.50 m  n=525  median=-57.00 dBm  p5=-59.00 dBm  p95=-56.00 dBm
+        1.500: {'count': 525, 'median': -57.000, 'p5': -59.000, 'p95': -56.000},
+# host_ip=172.20.10.4  dist=2.00 m  n=528  median=-60.00 dBm  p5=-62.00 dBm  p95=-59.00 dBm
+        2.000: {'count': 528, 'median': -60.000, 'p5': -62.000, 'p95': -59.000},
+# host_ip=172.20.10.4  dist=2.50 m  n=529  median=-62.00 dBm  p5=-63.00 dBm  p95=-60.00 dBm
+        2.500: {'count': 529, 'median': -62.000, 'p5': -63.000, 'p95': -60.000},
+# host_ip=172.20.10.4  dist=3.00 m  n=531  median=-59.00 dBm  p5=-60.00 dBm  p95=-57.00 dBm
+        3.000: {'count': 531, 'median': -59.000, 'p5': -60.000, 'p95': -57.000},
+# host_ip=172.20.10.4  dist=3.50 m  n=526  median=-65.00 dBm  p5=-67.00 dBm  p95=-61.00 dBm
+        3.500: {'count': 526, 'median': -65.000, 'p5': -67.000, 'p95': -61.000},
+# host_ip=172.20.10.4  dist=4.00 m  n=530  median=-67.00 dBm  p5=-69.00 dBm  p95=-63.00 dBm
+        4.000: {'count': 530, 'median': -67.000, 'p5': -69.000, 'p95': -63.000},
+# host_ip=172.20.10.4  dist=4.50 m  n=528  median=-69.00 dBm  p5=-71.00 dBm  p95=-66.00 dBm
+        4.500: {'count': 528, 'median': -69.000, 'p5': -71.000, 'p95': -66.000},
+# host_ip=172.20.10.4  dist=5.00 m  n=527  median=-68.00 dBm  p5=-69.00 dBm  p95=-63.00 dBm
+        5.000: {'count': 527, 'median': -68.000, 'p5': -69.000, 'p95': -63.000},
+# host_ip=172.20.10.4  dist=6.00 m  n=526  median=-67.00 dBm  p5=-68.00 dBm  p95=-64.00 dBm
+        6.000: {'count': 526, 'median': -67.000, 'p5': -68.000, 'p95': -64.000},
+# host_ip=172.20.10.4  dist=7.00 m  n=533  median=-68.00 dBm  p5=-70.00 dBm  p95=-67.00 dBm
+        7.000: {'count': 533, 'median': -68.000, 'p5': -70.000, 'p95': -67.000},
+# host_ip=172.20.10.4  dist=8.00 m  n=532  median=-72.00 dBm  p5=-73.00 dBm  p95=-69.00 dBm
+        8.000: {'count': 532, 'median': -72.000, 'p5': -73.000, 'p95': -69.000},
+# host_ip=172.20.10.4  dist=9.00 m  n=526  median=-73.00 dBm  p5=-75.00 dBm  p95=-72.00 dBm
+        9.000: {'count': 526, 'median': -73.000, 'p5': -75.000, 'p95': -72.000},
+# host_ip=172.20.10.4  dist=10.00 m  n=532  median=-73.00 dBm  p5=-75.00 dBm  p95=-71.00 dBm
+        10.000: {'count': 532, 'median': -73.000, 'p5': -75.000, 'p95': -71.000},
+    },
+}
